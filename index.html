@@ -136,6 +136,17 @@
   .tl-title{font-size:14px; font-weight:500;}
   .tl-meta{font-size:12px; color:var(--ink-soft); margin-top:2px;}
   .tl-empty{color:var(--ink-soft); font-size:13.5px; text-align:center; padding:30px 10px;}
+  .window-day-group + .window-day-group{margin-top:6px;}
+  .window-day-header{
+    font-size:12.5px; font-weight:700; color:var(--ink-soft); padding:14px 2px 6px;
+    border-top:1px solid var(--line); margin-top:4px;
+  }
+  .window-day-group:first-child .window-day-header{border-top:none; margin-top:0; padding-top:2px;}
+  .window-row-meta-badge{
+    font-size:10.5px; padding:1px 7px; border-radius:8px; margin-inline-start:6px; display:inline-block;
+  }
+  .window-row-meta-badge.day{background:#FFF3DE; color:#9A6A1F;}
+  .window-row-meta-badge.night{background:#E7EEF7; color:#3E5C82;}
 
   .card{background:var(--card); border-radius:var(--radius); border:1px solid var(--line); box-shadow:var(--shadow); padding:16px;}
   .card + .card{margin-top:12px;}
@@ -188,6 +199,17 @@
     flex:1; padding:9px; border-radius:12px; border:1px solid var(--line); background:#fff; font-size:13px; cursor:pointer;
   }
   .growth-tabs button.active{background:var(--rose-deep); color:#fff; border-color:var(--rose-deep);}
+
+  .day-nav{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .day-nav-btn{
+    width:38px; height:38px; flex-shrink:0; border-radius:12px; border:1px solid var(--line); background:var(--card);
+    font-size:18px; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
+  }
+  .day-nav input[type="date"]{
+    flex:1; padding:9px 10px; border:1px solid var(--line); border-radius:12px; font-size:14px;
+    font-family:'Rubik',sans-serif; background:var(--card); color:var(--ink); min-width:0;
+  }
+  .day-nav .ghost-btn{flex-shrink:0; padding:9px 12px; font-size:12.5px;}
   .chart-wrap{position:relative; height:260px; margin-top:8px;}
   .pct-note{font-size:11px; color:var(--ink-soft); margin-top:8px; line-height:1.6;}
 
@@ -282,7 +304,13 @@
       </button>
     </div>
 
-    <h2 class="section-title">📋 היום</h2>
+    <h2 class="section-title" id="timelineTitle">📋 היום</h2>
+    <div class="day-nav">
+      <button type="button" class="day-nav-btn" id="prevDayBtn">‹</button>
+      <input type="date" id="timelineDate">
+      <button type="button" class="day-nav-btn" id="nextDayBtn">›</button>
+      <button type="button" class="ghost-btn" id="todayJumpBtn">היום</button>
+    </div>
     <div class="card">
       <div class="timeline" id="todayTimeline"></div>
     </div>
@@ -345,6 +373,36 @@
       <div style="font-size:13px; font-weight:600; margin-bottom:8px;">החתלות ליום</div>
       <div class="chart-wrap" style="height:200px;"><canvas id="diaperStatChart"></canvas></div>
     </div>
+
+    <h2 class="section-title">🌗 חלונות שינה וערות</h2>
+    <div class="card">
+      <div class="growth-tabs" id="windowRangeSeg">
+        <button class="active" data-range="7">7 ימים</button>
+        <button data-range="30">30 יום</button>
+      </div>
+      <div class="stat-grid" id="windowStatCards" style="margin-top:12px; margin-bottom:0;"></div>
+      <p class="pct-note" id="windowStatsNote"></p>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">☀️ מגמת חלונות ערות ביום (שעות)</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="awakeDayTrendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">🌙 מגמת חלונות ערות בלילה (שעות)</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="awakeNightTrendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">☀️ מגמת חלונות שינה ביום — נמנום (שעות)</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="sleepDayTrendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">🌙 מגמת חלונות שינה בלילה (שעות)</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="sleepNightTrendChart"></canvas></div>
+    </div>
+
+    <h2 class="section-title">🗒 פירוט חלונות לפי יום</h2>
+    <div class="card" id="windowsList"></div>
   </section>
 
   <!-- SETTINGS -->
@@ -397,6 +455,13 @@
         </div>
       </div>
       <div class="field"><label>תאריך ושעה</label><input type="datetime-local" id="sleepTime" required></div>
+      <div class="field">
+        <label>יום / לילה</label>
+        <div class="seg" id="sleepPeriodSeg">
+          <button type="button" data-val="day">☀️ יום</button>
+          <button type="button" data-val="night">🌙 לילה</button>
+        </div>
+      </div>
       <button type="submit" class="primary-btn">שמירה</button>
       <button type="button" class="ghost-btn" id="sleepDeleteBtn" style="display:none; color:var(--rose-deep); border-color:var(--rose-deep);">מחיקת רשומה</button>
     </form>
@@ -487,6 +552,9 @@ let SETTINGS = { name:"עידו", birth: null };
 let ME = localStorage.getItem('ido_who') || "";
 let growthMetric = 'weight';
 let diaperTypeVal = 'pee';
+let sleepPeriodVal = 'day';
+let windowStatsRange = 7;
+let timelineDate = new Date().toISOString().slice(0,10);
 let charts = {};
 
 const $ = (id) => document.getElementById(id);
@@ -500,6 +568,10 @@ function nowLocalInput(){
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0,16);
 }
+function suggestPeriod(dateTimeStr){
+  const h = new Date(dateTimeStr).getHours();
+  return (h>=6 && h<19) ? 'day' : 'night';
+}
 function fmtTime(iso){
   const d = new Date(iso);
   return d.toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'});
@@ -511,6 +583,11 @@ function fmtDateTime(iso){
 function isToday(iso){
   const d = new Date(iso), t = new Date();
   return d.toDateString() === t.toDateString();
+}
+function isOnDate(iso, dateStr){
+  const d = new Date(iso);
+  const localStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return localStr === dateStr;
 }
 function daysAgo(iso, n){
   const d = new Date(iso), t = new Date();
@@ -602,6 +679,32 @@ document.querySelectorAll('nav.tabbar button').forEach(b=>{
   b.addEventListener('click', ()=>switchView(b.dataset.view));
 });
 
+/* ---------- day navigation (timeline) ---------- */
+function shiftDate(dateStr, days){
+  const d = new Date(dateStr+'T12:00:00');
+  d.setDate(d.getDate()+days);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+$('timelineDate').addEventListener('change', ()=>{
+  timelineDate = $('timelineDate').value || new Date().toISOString().slice(0,10);
+  renderTodayTimeline();
+});
+$('prevDayBtn').addEventListener('click', ()=>{
+  timelineDate = shiftDate(timelineDate, -1);
+  $('timelineDate').value = timelineDate;
+  renderTodayTimeline();
+});
+$('nextDayBtn').addEventListener('click', ()=>{
+  timelineDate = shiftDate(timelineDate, 1);
+  $('timelineDate').value = timelineDate;
+  renderTodayTimeline();
+});
+$('todayJumpBtn').addEventListener('click', ()=>{
+  timelineDate = new Date().toISOString().slice(0,10);
+  $('timelineDate').value = timelineDate;
+  renderTodayTimeline();
+});
+
 /* ---------- modals ---------- */
 function openModal(id){ $(id).classList.add('open'); }
 function closeModal(id){ $(id).classList.remove('open'); }
@@ -683,6 +786,16 @@ function setSleepTypeSeg(val){
 document.querySelectorAll('#sleepTypeSeg button').forEach(b=>{
   b.addEventListener('click', ()=>setSleepTypeSeg(b.dataset.val));
 });
+function setSleepPeriodSeg(val){
+  sleepPeriodVal = val;
+  document.querySelectorAll('#sleepPeriodSeg button').forEach(b=>b.classList.toggle('active', b.dataset.val===val));
+}
+document.querySelectorAll('#sleepPeriodSeg button').forEach(b=>{
+  b.addEventListener('click', ()=>setSleepPeriodSeg(b.dataset.val));
+});
+$('sleepTime').addEventListener('change', ()=>{
+  setSleepPeriodSeg(suggestPeriod($('sleepTime').value));
+});
 function openSleepModal(editId, defaultType){
   if(editId){
     const ev = DATA.events.find(e=>e.id===editId);
@@ -692,12 +805,14 @@ function openSleepModal(editId, defaultType){
     setSleepTypeSeg(ev.type);
     const d = new Date(ev.time); d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
     $('sleepTime').value = d.toISOString().slice(0,16);
+    setSleepPeriodSeg(ev.period || suggestPeriod(ev.time));
     $('sleepDeleteBtn').style.display = 'block';
   } else {
     $('sleepModalTitle').textContent = '😴 שינה';
     $('sleepEditId').value = '';
     setSleepTypeSeg(defaultType || 'sleep');
     $('sleepTime').value = nowLocalInput();
+    setSleepPeriodSeg(suggestPeriod($('sleepTime').value));
     $('sleepDeleteBtn').style.display = 'none';
   }
   openModal('sleepModal');
@@ -706,12 +821,13 @@ $('sleepForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
   const editId = $('sleepEditId').value;
   const type = document.querySelector('#sleepTypeSeg button.active')?.dataset.val || 'sleep';
+  const period = document.querySelector('#sleepPeriodSeg button.active')?.dataset.val || 'day';
   const time = new Date($('sleepTime').value).toISOString();
   if(editId){
     const ev = DATA.events.find(x=>x.id===editId);
-    if(ev){ ev.type = type; ev.time = time; ev.editedBy = ME||''; }
+    if(ev){ ev.type = type; ev.time = time; ev.period = period; ev.editedBy = ME||''; }
   } else {
-    DATA.events.push({ id:uid(), type, time, by:ME||'' });
+    DATA.events.push({ id:uid(), type, time, period, by:ME||'' });
   }
   await saveData();
   closeModal('sleepModal');
@@ -918,8 +1034,8 @@ function timelineIcon(ev){
   return '🌟';
 }
 function timelineTitle(ev){
-  if(ev.type==='sleep') return 'נרדם';
-  if(ev.type==='wake') return 'התעורר';
+  if(ev.type==='sleep') return `נרדם${ev.period?(ev.period==='night'?' 🌙':' ☀️'):''}`;
+  if(ev.type==='wake') return `התעורר${ev.period?(ev.period==='night'?' 🌙':' ☀️'):''}`;
   if(ev.type==='feed') return `האכלה — ${ev.ml} מ"ל`;
   if(ev.type==='diaper'){
     if(ev.kind==='pee') return 'פיפי';
@@ -928,11 +1044,21 @@ function timelineTitle(ev){
   }
   return ev.title;
 }
+function updateTimelineTitle(){
+  const todayStr = new Date().toISOString().slice(0,10);
+  if(timelineDate === todayStr){
+    $('timelineTitle').textContent = '📋 היום';
+  } else {
+    const d = new Date(timelineDate+'T12:00:00');
+    $('timelineTitle').textContent = '📋 ' + d.toLocaleDateString('he-IL', {weekday:'long', day:'2-digit', month:'2-digit'});
+  }
+}
 function renderTodayTimeline(){
-  const todayEvents = DATA.events.filter(e=>isToday(e.time)).map(e=>({...e, _kind:'event'}));
-  const todayMilestones = DATA.milestones.filter(m=>isToday(m.time)).map(m=>({...m, type:'milestone', _kind:'milestone'}));
-  const all = [...todayEvents, ...todayMilestones].sort((a,b)=>new Date(b.time)-new Date(a.time));
-  if(all.length===0){ $('todayTimeline').innerHTML = '<div class="tl-empty">עוד לא נרשם כלום היום — התחילו בעדכון מהיר למעלה 👆</div>'; return; }
+  updateTimelineTitle();
+  const dayEvents = DATA.events.filter(e=>isOnDate(e.time, timelineDate)).map(e=>({...e, _kind:'event'}));
+  const dayMilestones = DATA.milestones.filter(m=>isOnDate(m.time, timelineDate)).map(m=>({...m, type:'milestone', _kind:'milestone'}));
+  const all = [...dayEvents, ...dayMilestones].sort((a,b)=>new Date(b.time)-new Date(a.time));
+  if(all.length===0){ $('todayTimeline').innerHTML = '<div class="tl-empty">לא נרשם כלום ביום הזה</div>'; return; }
   $('todayTimeline').innerHTML = all.map(ev=>{
     const isEditable = (ev.type==='sleep'||ev.type==='wake'||ev.type==='feed'||ev.type==='diaper');
     return `
@@ -990,9 +1116,9 @@ function renderGrowthHistory(){
     </div>
   `).join('');
 }
-document.querySelectorAll('.growth-tabs button').forEach(b=>{
+document.querySelectorAll('#view-growth .growth-tabs button').forEach(b=>{
   b.addEventListener('click', ()=>{
-    document.querySelectorAll('.growth-tabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('#view-growth .growth-tabs button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
     growthMetric = b.dataset.metric;
     renderGrowthChart();
@@ -1098,6 +1224,135 @@ function renderStats(){
     data:{ labels: dayLabels, datasets:[{ data: diaperByDay, backgroundColor:'#D98E86', borderRadius:6 }] },
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ title:{display:true,text:'מספר'}, grid:{color:'#F0E8D8'} }, x:{ grid:{display:false} } } }
   });
+  renderWindowStats(windowStatsRange);
+}
+
+/* ---------- sleep/awake windows ---------- */
+function computeWindows(){
+  const events = [...DATA.events].filter(e=>e.type==='sleep'||e.type==='wake').sort((a,b)=>new Date(a.time)-new Date(b.time));
+  const windows = [];
+  for(let i=0;i<events.length-1;i++){
+    const cur = events[i], next = events[i+1];
+    const hours = (new Date(next.time)-new Date(cur.time))/3600000;
+    if(hours<0 || hours>20) continue;
+    if(cur.type==='sleep' && next.type==='wake'){
+      windows.push({ kind:'sleep', start:cur.time, end:next.time, hours, period: cur.period || suggestPeriod(cur.time) });
+    } else if(cur.type==='wake' && next.type==='sleep'){
+      windows.push({ kind:'awake', start:cur.time, end:next.time, hours, period: cur.period || suggestPeriod(cur.time) });
+    }
+  }
+  return windows;
+}
+document.querySelectorAll('#windowRangeSeg button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#windowRangeSeg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    windowStatsRange = Number(b.dataset.range);
+    renderWindowStats(windowStatsRange);
+  });
+});
+function formatHM(hours){
+  const h = Math.floor(hours), m = Math.round((hours-h)*60);
+  return `${h}:${String(m).padStart(2,'0')}`;
+}
+function renderWindowStats(rangeDays){
+  const windows = computeWindows();
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-rangeDays); cutoff.setHours(0,0,0,0);
+  const inRange = windows.filter(w=> new Date(w.start) >= cutoff);
+  const buckets = { awake_day:[], awake_night:[], sleep_day:[], sleep_night:[] };
+  inRange.forEach(w=>{
+    const key = `${w.kind}_${w.period}`;
+    if(buckets[key]) buckets[key].push(w.hours);
+  });
+  const fmt = (arr)=>{
+    if(arr.length===0) return '—';
+    const avg = arr.reduce((a,b)=>a+b,0)/arr.length;
+    return formatHM(avg);
+  };
+  $('windowStatCards').innerHTML = `
+    <div class="stat-card"><div class="n num">${fmt(buckets.awake_day)}</div><div class="l">חלון ערות ביום, ממוצע (${buckets.awake_day.length})</div></div>
+    <div class="stat-card"><div class="n num">${fmt(buckets.awake_night)}</div><div class="l">חלון ערות בלילה, ממוצע (${buckets.awake_night.length})</div></div>
+    <div class="stat-card"><div class="n num">${fmt(buckets.sleep_day)}</div><div class="l">חלון שינה ביום, ממוצע (${buckets.sleep_day.length})</div></div>
+    <div class="stat-card"><div class="n num">${fmt(buckets.sleep_night)}</div><div class="l">חלון שינה בלילה, ממוצע (${buckets.sleep_night.length})</div></div>
+  `;
+  $('windowStatsNote').textContent = `מבוסס על ${inRange.length} חלונות שהושלמו ב-${rangeDays} הימים האחרונים (שעות:דקות). המספר בסוגריים הוא כמות החלונות בכל קטגוריה.`;
+  renderWindowTrendCharts(inRange, rangeDays);
+  renderWindowsList(inRange);
+}
+function renderWindowTrendCharts(inRange, rangeDays){
+  const days = [];
+  for(let i=rangeDays-1;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    days.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));
+  }
+  const dayLabels = days.map(key=>{
+    const d = new Date(key+'T12:00:00');
+    return rangeDays>7 ? d.toLocaleDateString('he-IL',{day:'2-digit', month:'2-digit'}) : d.toLocaleDateString('he-IL',{weekday:'short', day:'2-digit'});
+  });
+  function avgByDay(kind, period){
+    return days.map(key=>{
+      const vals = inRange.filter(w=>{
+        const d = new Date(w.start);
+        const wKey = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        return wKey===key && w.kind===kind && w.period===period;
+      }).map(w=>w.hours);
+      if(vals.length===0) return null;
+      return +( vals.reduce((a,b)=>a+b,0)/vals.length ).toFixed(2);
+    });
+  }
+  const awakeDay = avgByDay('awake','day');
+  const awakeNight = avgByDay('awake','night');
+  const sleepDay = avgByDay('sleep','day');
+  const sleepNight = avgByDay('sleep','night');
+
+  function renderTrendChart(chartKey, canvasId, label, data, color){
+    if(charts[chartKey]) charts[chartKey].destroy();
+    charts[chartKey] = new Chart($(canvasId), {
+      type:'line',
+      data:{ labels: dayLabels, datasets:[
+        { label, data, borderColor:color, backgroundColor:color, spanGaps:false, tension:0.3, pointRadius:3 }
+      ]},
+      options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ title:{display:true,text:'שעות'}, grid:{color:'#F0E8D8'} }, x:{ grid:{display:false} } }, plugins:{ legend:{ display:false } } }
+    });
+  }
+  renderTrendChart('awakeDayTrend', 'awakeDayTrendChart', '☀️ יום', awakeDay, '#C77F3A');
+  renderTrendChart('awakeNightTrend', 'awakeNightTrendChart', '🌙 לילה', awakeNight, '#3E5C82');
+  renderTrendChart('sleepDayTrend', 'sleepDayTrendChart', '☀️ יום', sleepDay, '#7C9885');
+  renderTrendChart('sleepNightTrend', 'sleepNightTrendChart', '🌙 לילה', sleepNight, '#345C40');
+}
+function renderWindowsList(windows){
+  if(windows.length===0){ $('windowsList').innerHTML = '<div class="empty-hint">אין עדיין חלונות שהושלמו בטווח הזה</div>'; return; }
+  const sorted = [...windows].sort((a,b)=>new Date(b.start)-new Date(a.start));
+  const groups = {};
+  const order = [];
+  sorted.forEach(w=>{
+    const d = new Date(w.start);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(w);
+  });
+  const todayStr = new Date().toISOString().slice(0,10);
+  $('windowsList').innerHTML = order.map(key=>{
+    const d = new Date(key+'T12:00:00');
+    let label = d.toLocaleDateString('he-IL', {weekday:'long', day:'2-digit', month:'2-digit'});
+    if(key===todayStr) label = 'היום · ' + label;
+    const rows = groups[key].map(w=>{
+      const icon = w.kind==='sleep' ? '😴' : '🙂';
+      const iconClass = w.kind==='sleep' ? 'sleep' : 'wake';
+      const kindLabel = w.kind==='sleep' ? 'שינה' : 'ערות';
+      const badgeClass = w.period==='night' ? 'night' : 'day';
+      const badgeText = w.period==='night' ? '🌙 לילה' : '☀️ יום';
+      return `
+      <div class="tl-item">
+        <div class="tl-icon ${iconClass}">${icon}</div>
+        <div class="tl-body">
+          <div class="tl-title">${kindLabel} — ${formatHM(w.hours)} שעות<span class="window-row-meta-badge ${badgeClass}">${badgeText}</span></div>
+          <div class="tl-meta">${fmtTime(w.start)} → ${fmtTime(w.end)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="window-day-group"><div class="window-day-header">${label}</div>${rows}</div>`;
+  }).join('');
 }
 
 /* ---------- settings ---------- */
@@ -1162,6 +1417,7 @@ function refreshAll(){
 function init(){
   refreshWho();
   $('gDate').value = new Date().toISOString().slice(0,10);
+  $('timelineDate').value = timelineDate;
   renderMilestonePresets();
   initRealtimeSync();
   if(!ME){ switchView('settings'); toast('ברוכים הבאים! ספרו לנו מי אתם 👋'); }
