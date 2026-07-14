@@ -106,11 +106,18 @@
   .who-btn .avatar{width:20px;height:20px;border-radius:50%; background:var(--sage); color:#fff; font-size:11px; display:flex;align-items:center;justify-content:center; font-weight:700;}
 
   .status-strip{
-    margin-top:14px; display:grid; grid-template-columns:repeat(auto-fit, minmax(86px, 1fr)); gap:8px;
+    direction:ltr;
+    margin-top:14px; overflow:hidden; position:relative; max-width:640px; margin-inline:auto;
+    touch-action:pan-y; cursor:grab; user-select:none;
   }
+  .status-strip.dragging{ cursor:grabbing; }
+  .status-strip-track{
+    display:flex; gap:8px; width:max-content; will-change:transform;
+  }
+  .status-strip-track .chip{ direction:rtl; }
   .chip{
-    background:var(--card); border:1px solid var(--line); border-radius:14px;
-    padding:9px 13px; font-size:12.5px; display:flex; flex-direction:column; gap:2px; min-width:0;
+    flex-shrink:0; min-width:88px; background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:9px 13px; font-size:12.5px; display:flex; flex-direction:column; gap:2px;
     box-shadow:var(--shadow);
   }
   .chip .label{color:var(--ink-soft); font-size:11px;}
@@ -1025,7 +1032,7 @@ function renderStatusStrip(){
   const avgNightSleep = avgTimeOfDay(nightSleeps);
   const avgWakeTime = avgTimeOfDay(wakes);
 
-  strip.innerHTML = `
+  const chipsHtml = `
     <div class="chip"><div class="label">מצב</div><div class="val">${asleep?icon('moon')+' ישן':icon('sun')+' ער'}</div>${statusTime?`<div class="label" style="margin-top:1px;">מ-${statusTime}</div>`:''}</div>
     <div class="chip"><div class="label">האכלה אחרונה</div><div class="val">${lf?fmtTime(lf.time):'—'}</div></div>
     <div class="chip"><div class="label">החתלה אחרונה</div><div class="val">${ld?fmtTime(ld.time):'—'}</div></div>
@@ -1034,7 +1041,65 @@ function renderStatusStrip(){
     <div class="chip"><div class="label">${icon('moon')} שעת שינה ממוצעת בלילה</div><div class="val">${avgNightSleep||'—'}</div></div>
     <div class="chip"><div class="label">${icon('sun')} שעת קימה ממוצעת</div><div class="val">${avgWakeTime||'—'}</div></div>
   `;
+  strip.innerHTML = `<div class="status-strip-track">${chipsHtml}${chipsHtml}</div>`;
 }
+
+/* ---------- status strip marquee (auto-scroll + drag) ---------- */
+const STATUS_MARQUEE_CYCLE_S = 22;
+let msOffset = 0;
+let msDragging = false;
+let msDragStartX = 0;
+let msDragStartOffset = 0;
+let msLastTime = null;
+const msReduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function msWrap(v, w){
+  if(w<=0) return 0;
+  v = v % w;
+  if(v > 0) v -= w;
+  return v;
+}
+function msTick(now){
+  const strip = $('statusStrip');
+  const track = strip.querySelector('.status-strip-track');
+  if(track){
+    const singleWidth = track.scrollWidth / 2;
+    if(!msDragging && !msReduceMotion && singleWidth>0){
+      if(msLastTime==null) msLastTime = now;
+      const dt = (now - msLastTime)/1000;
+      const speed = singleWidth / STATUS_MARQUEE_CYCLE_S;
+      msOffset = msWrap(msOffset - speed*dt, singleWidth);
+    }
+    msLastTime = now;
+    track.style.transform = `translateX(${msOffset}px)`;
+  } else {
+    msLastTime = now;
+  }
+  requestAnimationFrame(msTick);
+}
+requestAnimationFrame(msTick);
+
+const statusStripEl = $('statusStrip');
+statusStripEl.addEventListener('pointerdown', (e)=>{
+  msDragging = true;
+  msDragStartX = e.clientX;
+  msDragStartOffset = msOffset;
+  statusStripEl.classList.add('dragging');
+  statusStripEl.setPointerCapture(e.pointerId);
+});
+statusStripEl.addEventListener('pointermove', (e)=>{
+  if(!msDragging) return;
+  const dx = e.clientX - msDragStartX;
+  const track = statusStripEl.querySelector('.status-strip-track');
+  const singleWidth = track ? track.scrollWidth/2 : 0;
+  msOffset = msWrap(msDragStartOffset + dx, singleWidth);
+});
+function msEndDrag(){
+  msDragging = false;
+  statusStripEl.classList.remove('dragging');
+}
+statusStripEl.addEventListener('pointerup', msEndDrag);
+statusStripEl.addEventListener('pointercancel', msEndDrag);
 
 /* ---------- sleep toggle ---------- */
 function refreshSleepBtn(){
